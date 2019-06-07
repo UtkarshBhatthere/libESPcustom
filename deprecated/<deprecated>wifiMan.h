@@ -1,15 +1,45 @@
-#include "WIFI_essentials.h"
+#ifndef _WIFI_ESSENTIALS_H
+#define _WIFI_ESSENTIALS_H
 
+/* Includes */
+#include "esp_wifi.h"
+#include "esp_err.h"
+#include "esp_log.h"
+#include "esp_event.h"
+#include "esp_event_loop.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+typedef enum{
+    WIFI_STATION,
+    WIFI_AP,
+    WIFI_HYBRID
+} wifi_Mode_t;
+
+typedef struct{
+    wifi_Mode_t mode;
+    char* ssid;
+    char* pass;
+} wifi_mgr_t;
+
+/* API's */
+esp_err_t wifi_Init(wifi_mgr_t *mgr);
+esp_err_t wifi_scan(void);
+esp_err_t wifi_connect(void);
+esp_err_t wifi_StationHandler(void *ctx, system_event_t *event);
+esp_err_t wifi_APHandler(void *ctx, system_event_t *event);
 
 /* Static API's */
-static esp_err_t wifi_SetupStation(void)
+static esp_err_t wifi_SetupStation(char* ssid, char* pass)
 {
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     wifi_config_t station = {
         .sta = {
-        .ssid = "Test",
-        .password = "qwertyuiop",
+        .ssid = ssid,
+        .password = pass,
         .bssid_set = 0
         }
     };
@@ -67,12 +97,12 @@ void wifi_printScan(uint16_t num){
 }
 
 /* API's */
-esp_err_t wifi_Init(wifi_Mode_t mode)
+esp_err_t wifi_Init(wifi_mgr_t *mgr)
 {
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
     ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
-    if (mode == WIFI_STATION){
+    if (mgr->mode == WIFI_STATION){
         ESP_ERROR_CHECK(wifi_SetupStation());
     }else{
         ESP_ERROR_CHECK(wifi_SetupAP());
@@ -147,3 +177,9 @@ void wifiSimpleTask(void* ctx){
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // @ _WIFI_ESSENTIALS_H
