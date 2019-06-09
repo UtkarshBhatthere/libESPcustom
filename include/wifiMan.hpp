@@ -37,7 +37,7 @@ class wifiMan{
         wifi_mode_t mode;
         wifi_config_t config;
 
-    public: 
+    public:
         wifi_status_t status;
 
         /* API's */
@@ -52,6 +52,9 @@ class wifiMan{
 
         // Connect to set wifi if found in current scan.
         esp_err_t connect(void);
+
+        // Check connection with the wifi AP in Station mode.
+        bool isConnected(void);
 
         // Wifi Manager to bind all API's.
         esp_err_t mgr(TickType_t ticks);

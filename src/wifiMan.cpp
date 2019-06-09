@@ -299,6 +299,15 @@ esp_err_t wifiMan::connect(void)
     return ESP_OK;
 }
 
+bool wifiMan::isConnected(void)
+{
+    if(this->mode == wifi_STATION_MODE){
+        return this->status.connected;
+    }else{
+        return false;
+    }
+}
+
 /********************************************************************************
  * @brief : Iterated** manager function for wifi subsystem.
  * @param : null.
