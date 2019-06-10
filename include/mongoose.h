@@ -3492,7 +3492,7 @@ struct {								\
 #endif
 
 #ifndef MG_ENABLE_DNS_SERVER
-#define MG_ENABLE_DNS_SERVER 0
+#define MG_ENABLE_DNS_SERVER 1
 #endif
 
 #ifndef MG_ENABLE_FAKE_DAVLOCK
