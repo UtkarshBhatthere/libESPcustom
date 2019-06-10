@@ -13,6 +13,13 @@
 #include "esp_event_legacy.h"
 
 #include "freertos/FreeRTOS.h"
+#include "tcpip_adapter.h"
+#include "lwip/err.h"
+#include "lwip/sockets.h"
+#include "lwip/sys.h"
+#include "lwip/netdb.h"
+#include "lwip/dns.h"
+#include "lwip/ip_addr.h"
 
 
 #define wifi_STATION_MODE   WIFI_MODE_STA
@@ -23,10 +30,11 @@
 
 typedef struct{
     bool connected = false;
+    bool sta_connected = false;
+    bool sta_disconnected = false;
     bool verbose = false;
     int scan_done_count = 0;
-    // For True value the system will connect to available AP otherwise it'll print available AP's.
-    bool connecting = false;
+    bool got_ip = false;
 } wifi_status_t;
 
 class wifiMan{
@@ -53,8 +61,14 @@ class wifiMan{
         // Connect to set wifi if found in current scan.
         esp_err_t connect(void);
 
+        // Initialise the Station in apsta mode, since init only initialises ap in apsta.
+        esp_err_t ap_sta_init(std::string ssid, std::string pass);
+
         // Check connection with the wifi AP in Station mode.
         bool isConnected(void);
+
+        // Check if IP is allotted or not.
+        bool got_ip(void);
 
         // Wifi Manager to bind all API's.
         esp_err_t mgr(TickType_t ticks);

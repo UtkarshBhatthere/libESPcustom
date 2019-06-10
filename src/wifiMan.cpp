@@ -1,4 +1,5 @@
 #include "wifiMan.hpp"
+#include "ipconfig.h"
 
 //TODO: Documentation.
 //Done: Implement better handler functions.
@@ -55,6 +56,17 @@ namespace helper
      ********************************************************************************/
     static esp_err_t wifi_setHybrid(wifi_config_t *config, std::string ssid, std::string pass)
     {
+        tcpip_adapter_ip_info_t info;
+        memset(&info, 0x00, sizeof(info));
+
+        ESP_ERROR_CHECK(tcpip_adapter_dhcps_stop(TCPIP_ADAPTER_IF_AP)); 	/* stop AP DHCP server */
+        inet_pton(AF_INET, ipconfig_DEFAULT_IP, &info.ip); /* access point is on a static IP */
+        inet_pton(AF_INET, ipconfig_DEFAULT_GATEWAY, &info.gw);
+        inet_pton(AF_INET, ipconfig_DEFAULT_NETMASK, &info.netmask);
+        ESP_ERROR_CHECK(tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_AP, &info));
+        ESP_ERROR_CHECK(tcpip_adapter_dhcps_start(TCPIP_ADAPTER_IF_AP)); /* start AP DHCP server */
+        ESP_LOGI(wifiManTag, "The IP is %s", ip4addr_ntoa(&info.ip));
+
         ESP_ERROR_CHECK(esp_wifi_set_mode(wifi_HYBRID_MODE));
         memset(config, 0x00, sizeof(wifi_config_t));
         memcpy(config->ap.ssid, ssid.c_str() , ssid.length() );
@@ -124,6 +136,7 @@ namespace helper
                 IP2STR(&got_ip->ip_info.ip),
                 IP2STR(&got_ip->ip_info.netmask),
                 IP2STR(&got_ip->ip_info.gw));
+            param->got_ip = true;
             break;
         }
         case SYSTEM_EVENT_STA_LOST_IP: {
@@ -158,12 +171,14 @@ namespace helper
             system_event_ap_staconnected_t *staconnected = &event->event_info.sta_connected;
             ESP_LOGI(wifiManTag, "SYSTEM_EVENT_AP_STACONNECTED, mac:" MACSTR ", aid:%d", \
                     MAC2STR(staconnected->mac), staconnected->aid);
+            param->sta_connected = true;
             break;
         }
         case SYSTEM_EVENT_AP_STADISCONNECTED: {
             system_event_ap_stadisconnected_t *stadisconnected = &event->event_info.sta_disconnected;
             ESP_LOGI(wifiManTag, "SYSTEM_EVENT_AP_STADISCONNECTED, mac:" MACSTR ", aid:%d", \
                     MAC2STR(stadisconnected->mac), stadisconnected->aid);
+            param->sta_disconnected = true;
             break;
         }
         case SYSTEM_EVENT_AP_STAIPASSIGNED: {
@@ -299,10 +314,32 @@ esp_err_t wifiMan::connect(void)
     return ESP_OK;
 }
 
+// Initialise the Station in apsta mode, since init only initialises ap in apsta.
+esp_err_t wifiMan::ap_sta_init(std::string ssid, std::string pass)
+{
+    memset(&(this->config.sta), 0x00, sizeof(wifi_sta_config_t));
+    memcpy(this->config.sta.ssid, ssid.c_str(), ssid.length());
+    memcpy(this->config.sta.password, pass.c_str(), pass.length());
+    this->config.sta.scan_method = WIFI_FAST_SCAN;
+    ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &(this->config)));
+    return ESP_OK;
+}
+
+// Check connection with the wifi AP in Station mode.
 bool wifiMan::isConnected(void)
 {
     if(this->mode == wifi_STATION_MODE){
         return this->status.connected;
+    }else{
+        return false;
+    }
+}
+
+// Check if IP is allotted or not.
+bool wifiMan::got_ip(void)
+{
+    if(this->mode == wifi_STATION_MODE){
+        return this->status.got_ip;
     }else{
         return false;
     }
