@@ -13,6 +13,7 @@
 #include "esp_event_legacy.h"
 
 #include "freertos/FreeRTOS.h"
+#include "nvs_flash.h"
 #include "tcpip_adapter.h"
 #include "lwip/err.h"
 #include "lwip/sockets.h"
@@ -42,6 +43,7 @@ class wifiMan{
     private:
         std::string ssid;
         std::string pass;
+        const char wifiManNS[10] = "wifiManNS";
         wifi_mode_t mode;
         wifi_config_t config;
 
@@ -63,6 +65,12 @@ class wifiMan{
 
         // Initialise the Station in apsta mode, since init only initialises ap in apsta.
         esp_err_t ap_sta_init(std::string ssid, std::string pass);
+
+        // Save configuration of the wifi subsystem to nvs_flash.
+        esp_err_t save_config(void);
+
+        // Fetch saved config 
+        esp_err_t fetch_config(std::string &ssid, std::string &pass);
 
         // Check connection with the wifi AP in Station mode.
         bool isConnected(void);

@@ -1,5 +1,6 @@
 #include "wifiMan.hpp"
 #include "ipconfig.h"
+// #include "sodium/"
 
 //TODO: Documentation.
 //Done: Implement better handler functions.
@@ -214,6 +215,12 @@ namespace helper
         return ESP_OK;
     }
 
+    /**********************************************************************************
+     * @brief : Scan and print APs in wifi neighbourhood.
+     * @param : num -> Count of available aps in the neighbourhood, returned by event
+     *          scan_done -> number.
+     * @retval: ESP_OK for sunny_day other wise ESP_ERROR_CHECK() will handle.
+     **********************************************************************************/
     void wifi_printScan(uint16_t num)
     {
         wifi_ap_record_t *records = new wifi_ap_record_t[num];
@@ -269,11 +276,24 @@ esp_err_t wifiMan::init()
 
     // Setting up wifi mode config.
     if(this->mode == wifi_AP_MODE){
+        ESP_LOGI(wifiManTag, "Setting up Access Point mode.");
         helper::wifi_setAP(&(this->config), this->ssid, this->pass);
     }else if(this->mode == wifi_STATION_MODE){
+        ESP_LOGI(wifiManTag, "Setting up Station mode.");
         helper::wifi_setStation(&(this->config), this->ssid, this->pass);
     }else if(this->mode == wifi_HYBRID_MODE){
+        ESP_LOGI(wifiManTag, "Setting up Hybrid mode.");
         helper::wifi_setHybrid(&(this->config), this->ssid, this->pass);
+        std::string ssid, pass;
+        esp_err_t error;
+        if ((error = this->fetch_config(ssid, pass)) == ESP_OK)
+        {
+            ESP_LOGI(wifiManTag, "Configuration Fetched, Setting up station.");
+            this->ap_sta_init(ssid, pass);
+        }else{
+            ESP_LOGI(wifiManTag, "No configuration fetched, setting up AP only.");
+        }
+        return ESP_OK;
     }
 
     ESP_ERROR_CHECK(esp_event_loop_init(helper::wifi_event_handler, &(this->status)));
@@ -314,7 +334,15 @@ esp_err_t wifiMan::connect(void)
     return ESP_OK;
 }
 
-// Initialise the Station in apsta mode, since init only initialises ap in apsta.
+// TODO: Test the save and feth config api's.
+// TODO: Implement cryptography to encrypt password before saving.
+
+/********************************************************************************
+ * @brief : Initialise the station in hybrid mode after initialisng AP.
+ * @param : 1.) ssid   -> SSID for the required Access Point.
+ *          2.) pass   -> Password for required Access Point.
+ * @retval: ESP_OK for sunny_day other wise ESP_ERROR_CHECK() will handle.
+ ********************************************************************************/
 esp_err_t wifiMan::ap_sta_init(std::string ssid, std::string pass)
 {
     memset(&(this->config.sta), 0x00, sizeof(wifi_sta_config_t));
@@ -325,7 +353,77 @@ esp_err_t wifiMan::ap_sta_init(std::string ssid, std::string pass)
     return ESP_OK;
 }
 
-// Check connection with the wifi AP in Station mode.
+/**********************************************************************************
+ * @brief : Save the current Station configuration to nvs for subsequent retrieval.
+ * @param : null.
+ * @retval: ESP_OK for sunny_day other wise ESP_ERROR_CHECK() will handle.
+ **********************************************************************************/
+esp_err_t wifiMan::save_config(void)
+{
+    nvs_handle mem_handle;
+    esp_err_t error;
+    ESP_LOGI(wifiManTag, "Saving Configuration.");
+    if ((error = nvs_open(wifiManNS, NVS_READWRITE, &mem_handle) != ESP_OK)){
+        return error;
+    }
+    if ((error = nvs_set_blob(mem_handle, "ssid", this->config.sta.ssid, 32)) != ESP_OK){
+        return error;
+    }
+    if (error = nvs_set_blob(mem_handle, "password", this->config.sta.password, 64)){
+        return error;
+    }
+    if ((error = nvs_commit(mem_handle))!= ESP_OK){
+        return error;
+    }
+    nvs_close(mem_handle);
+    return ESP_OK;
+}
+
+/********************************************************************************
+ * @brief : Fetch the saved configuration for Station use.
+ * @param : 1.) ssid   -> SSID for the required Access Point.
+ *          2.) pass   -> Password for required Access Point.
+ * @retval: ESP_OK for sunny_day other wise ESP_ERROR_CHECK() will handle.
+ ********************************************************************************/
+esp_err_t wifiMan::fetch_config(std::string &ssid_fetch, std::string &pass_fetch)
+{
+    nvs_handle mem_handle;
+    esp_err_t error;
+    ESP_LOGI(wifiManTag, "Fetching Configuration.");
+    if(nvs_open(wifiManNS, NVS_READONLY, &mem_handle) == ESP_OK){
+        char* ssid = new char[32];
+        char* pass = new char[64];
+        size_t size = sizeof(this->config.sta.ssid);
+        if ((error = nvs_get_blob(mem_handle, "ssid", ssid, &size) != ESP_OK))
+        {
+            delete[] ssid;
+            delete[] pass;
+            return error;
+        }
+        size = sizeof(this->config.sta.password);
+        if ((error = nvs_get_blob(mem_handle, "pass", pass, &size)) != ESP_OK)
+        {
+            delete[] ssid;
+            delete[] pass;
+            return error;
+        }
+        //transfer ssid to wifiMan and delete temporarily allocated memory.
+        ssid_fetch = ssid;
+        delete[] ssid;
+
+        //transfer pass to wifiMan and delete temporarily allocated memory.
+        pass_fetch = pass;
+        delete[] pass;
+        //Done.
+        return ESP_OK;
+    }
+}
+
+/**********************************************************************************
+ * @brief : Check if the wifi station is connected to any AP already.
+ * @param : null.
+ * @retval: ESP_OK for sunny_day other wise ESP_ERROR_CHECK() will handle.
+ **********************************************************************************/
 bool wifiMan::isConnected(void)
 {
     if(this->mode == wifi_STATION_MODE){
@@ -335,7 +433,11 @@ bool wifiMan::isConnected(void)
     }
 }
 
-// Check if IP is allotted or not.
+/**********************************************************************************
+ * @brief : Check if an IP is allocated to the wifi station by the AP dhcp server.
+ * @param : null.
+ * @retval: ESP_OK for sunny_day other wise ESP_ERROR_CHECK() will handle.
+ **********************************************************************************/
 bool wifiMan::got_ip(void)
 {
     if(this->mode == wifi_STATION_MODE){
@@ -353,9 +455,7 @@ bool wifiMan::got_ip(void)
  ********************************************************************************/
 esp_err_t wifiMan::mgr(TickType_t ticks)
 {
-    //TODO: Check for connectedness.
-    //TODO: Use scan_done_count
-    //TODO: Auto Connect for lost wifi connection.
+    //TODO: Implement a good wifimgr.
     if(this->mode == wifi_STATION_MODE){
         
         if(this->status.connected == false){
