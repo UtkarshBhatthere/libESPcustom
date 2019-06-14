@@ -363,13 +363,13 @@ esp_err_t wifiMan::save_config(void)
     nvs_handle mem_handle;
     esp_err_t error;
     ESP_LOGI(wifiManTag, "Saving Configuration.");
-    if ((error = nvs_open(wifiManNS, NVS_READWRITE, &mem_handle) != ESP_OK)){
+    if ((error = nvs_open(wifiManNS, NVS_READWRITE, &mem_handle)) != ESP_OK){
         return error;
     }
     if ((error = nvs_set_blob(mem_handle, "ssid", this->config.sta.ssid, 32)) != ESP_OK){
         return error;
     }
-    if (error = nvs_set_blob(mem_handle, "password", this->config.sta.password, 64)){
+    if ((error = nvs_set_blob(mem_handle, "password", this->config.sta.password, 64)) != ESP_OK){
         return error;
     }
     if ((error = nvs_commit(mem_handle))!= ESP_OK){
@@ -414,9 +414,9 @@ esp_err_t wifiMan::fetch_config(std::string &ssid_fetch, std::string &pass_fetch
         //transfer pass to wifiMan and delete temporarily allocated memory.
         pass_fetch = pass;
         delete[] pass;
-        //Done.
-        return ESP_OK;
     }
+    //Done.
+    return ESP_OK;
 }
 
 /**********************************************************************************
