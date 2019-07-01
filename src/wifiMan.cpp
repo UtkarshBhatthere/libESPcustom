@@ -330,8 +330,8 @@ esp_err_t wifiMan::scan(void)
  ********************************************************************************/
 esp_err_t wifiMan::connect(void)
 {
-    ESP_ERROR_CHECK(esp_wifi_connect());
-    return ESP_OK;
+    esp_err_t err = esp_wifi_connect();
+    return err;
 }
 
 // TODO: Test the save and feth config api's.
