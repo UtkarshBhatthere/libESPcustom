@@ -1,5 +1,5 @@
-#ifndef _WIFI_ESSENTIALS_H
-#define _WIFI_ESSENTIALS_H
+#ifndef _WIFI_MANAGER_H
+#define _WIFI_MANAGER_H
 
 /* Includes */
 #include <string>
@@ -36,6 +36,8 @@ typedef struct{
     bool verbose = false;
     int scan_done_count = 0;
     bool got_ip = false;
+    bool check_fetch = false;
+    bool save_config = false;
 } wifi_status_t;
 
 class wifiMan{
