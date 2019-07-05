@@ -145,6 +145,7 @@ namespace helper
         }
         case SYSTEM_EVENT_STA_LOST_IP: {
             ESP_LOGI(wifiManTag, "SYSTEM_EVENT_STA_LOST_IP");
+            param->got_ip = false;
             break;
         }
         case SYSTEM_EVENT_STA_WPS_ER_SUCCESS: {
@@ -182,11 +183,13 @@ namespace helper
             system_event_ap_stadisconnected_t *stadisconnected = &event->event_info.sta_disconnected;
             ESP_LOGI(wifiManTag, "SYSTEM_EVENT_AP_STADISCONNECTED, mac:" MACSTR ", aid:%d", \
                     MAC2STR(stadisconnected->mac), stadisconnected->aid);
-            param->sta_disconnected = true;
+            param->sta_connected = false;
+            param->got_ip = false;
             break;
         }
         case SYSTEM_EVENT_AP_STAIPASSIGNED: {
             ESP_LOGI(wifiManTag, "SYSTEM_EVENT_AP_STAIPASSIGNED");
+            param->got_ip = true;
             break;
         }
         case SYSTEM_EVENT_AP_PROBEREQRECVED: {
@@ -293,8 +296,6 @@ esp_err_t wifiMan::init()
 
     //Initiating Wifi System.
     ESP_ERROR_CHECK(esp_wifi_start());
-    ESP_LOGI(wifiManTag, "Subsysystem Initiated");
-
     return ESP_OK;
 }
 
@@ -382,7 +383,6 @@ esp_err_t wifiMan::fetch_config(std::string &ssid_fetch, std::string &pass_fetch
 {
     nvs_handle mem_handle;
     esp_err_t error;
-    ESP_LOGI(wifiManTag, "fetching previously saved configurations.");
     if(nvs_open(wifiManNS, NVS_READONLY, &mem_handle) == ESP_OK){
         char* temp_ssid = new char[32];
         char* temp_pass = new char[64];
@@ -392,7 +392,7 @@ esp_err_t wifiMan::fetch_config(std::string &ssid_fetch, std::string &pass_fetch
             delete[] temp_ssid;
             delete[] temp_pass;
             nvs_close(mem_handle);
-            ESP_LOGI("wifiMan", "Error getting SSID");
+            ESP_LOGE("wifiMan", "Error getting SSID");
             return error;
         }
         size = sizeof(this->config.sta.password);
@@ -401,7 +401,7 @@ esp_err_t wifiMan::fetch_config(std::string &ssid_fetch, std::string &pass_fetch
             delete[] temp_ssid;
             delete[] temp_pass;
             nvs_close(mem_handle);
-            ESP_LOGI("wifiMan", "Error getting PASS");
+            ESP_LOGE("wifiMan", "Error getting PASS");
             return error;
         }
         //transfer ssid to wifiMan and delete temporarily allocated memory.
@@ -412,7 +412,7 @@ esp_err_t wifiMan::fetch_config(std::string &ssid_fetch, std::string &pass_fetch
         pass_fetch = pass;
         delete[] temp_pass;
     }else{
-        ESP_LOGI("wifiMan", "Error opening Handle");
+        ESP_LOGE("wifiMan", "Error Opening NVS");
     }
     nvs_close(mem_handle);
     //Done.
@@ -426,9 +426,10 @@ esp_err_t wifiMan::fetch_config(std::string &ssid_fetch, std::string &pass_fetch
  **********************************************************************************/
 bool wifiMan::isConnected(void)
 {
-    if(this->mode == wifi_STATION_MODE){
+    if(this->mode != wifi_AP_MODE){
         return this->status.connected;
     }else{
+        ESP_LOGE(wifiManTag, "Device is AP mode!");
         return false;
     }
 }
@@ -440,9 +441,10 @@ bool wifiMan::isConnected(void)
  **********************************************************************************/
 bool wifiMan::got_ip(void)
 {
-    if(this->mode == wifi_STATION_MODE){
+    if(this->mode != wifi_AP_MODE){
         return this->status.got_ip;
     }else{
+        ESP_LOGE(wifiManTag, "Device is AP mode!");
         return false;
     }
 }
@@ -462,17 +464,13 @@ esp_err_t wifiMan::mgr(TickType_t ticks)
         std::string fetch_ssid, fetch_pass;
         if ((error = this->fetch_config(fetch_ssid, fetch_pass)) == ESP_OK)
         {
-            ESP_LOGI("MAJOR BUG", "SSID_LEN : %d", fetch_ssid.length());
             if(fetch_ssid.length() > 0){
-                ESP_LOGI("wifiMan", "Configuration Fetched, ssid = %s, ssid_len = %d", fetch_ssid.c_str(), fetch_ssid.length());
+                ESP_LOGI("wifiMan", "Previous Config Found, ssid = %s, ssid_len = %d", fetch_ssid.c_str(), fetch_ssid.length());
                 this->ap_sta_init(fetch_ssid, fetch_pass);
                 this->connect();
-            }else{
-                ESP_LOGI("wifiMan", "No configuration fetched, setting up AP only.");
             }
         }
         this->status.check_fetch = 0;
-        ESP_LOGI("wifiMan", "Done With the check");
     }
     if(this->status.save_config == 1){
         this->save_config();
