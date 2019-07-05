@@ -11,9 +11,10 @@ soundMan::soundMan()
         this->config.bits_per_sample      = I2S_BITS_PER_SAMPLE_16BIT;
         this->config.channel_format       = I2S_CHANNEL_FMT_ONLY_RIGHT;
         this->config.communication_format = I2S_COMM_FORMAT_PCM;
-        this->config.dma_buf_count        = 4;  // 12 DMA buffers.
-        this->config.dma_buf_len          = 256; // 8000 samples per buffer.
+        this->config.dma_buf_count        = 12;  // 12 DMA buffers.
+        this->config.dma_buf_len          = 512; // 256 samples per buffer.
         this->config.use_apll             = false;
+        this->config.communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB);
         this->config.intr_alloc_flags     = ESP_INTR_FLAG_LEVEL1;
         this->config.mode                 = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX);
         this->config.sample_rate          = standard_MIC_SAMPLE_RATE;
@@ -23,6 +24,7 @@ soundMan::soundMan()
         this->pinout.bck_io_num     = GPIO_NUM_22;
         this->pinout.data_in_num    = GPIO_NUM_19;
         this->pinout.ws_io_num      = GPIO_NUM_21;
+        this->pinout.data_out_num   = -1;   // Not used.
     }
 
 }
@@ -55,8 +57,8 @@ esp_err_t soundMan::init()
         return err;
     }
     // Initiating Clock Pulses.
-    if((err = i2s_set_clk(this->port, this->config.sample_rate, this->config.bits_per_sample, this->channel)) != ESP_OK){
-        ESP_LOGE(soundManTag, "Error setting clk at I2S port: %d", this->port);
+    if((err = i2s_set_sample_rates(this->port, this->config.sample_rate/2)) != ESP_OK){
+        ESP_LOGE(soundManTag, "Error setting SampleRate at I2S port: %d", this->port);
         return err;
     }
     // Starting I2S.
@@ -74,13 +76,14 @@ esp_err_t soundMan::rx_audio()
 {
     esp_err_t err;
     size_t bytes_read;
-    this->input_bfr = new uint16_t[this->config.dma_buf_len];
+    uint16_t input_bfr[this->config.dma_buf_len*2+4];
 
-    if((err = i2s_read(this->port, this->input_bfr, this->config.dma_buf_len, &bytes_read, 200)) != ESP_OK)
-        ESP_LOGE(soundManTag, "Specified %d but read %d bytes.", this->config.dma_buf_len, bytes_read);
+    if((err = i2s_read(this->port, &input_bfr, this->config.dma_buf_len, &bytes_read, 200)) != ESP_OK)
+        ESP_LOGI(soundManTag, "Specified %d but read %d bytes.", this->config.dma_buf_len, bytes_read);
 
-    this->post_receive_callback(this->input_bfr, bytes_read/2); // since each sample is 2 bytes.
-    delete[] this->input_bfr;
+    if((err = this->post_receive_callback(input_bfr, bytes_read)) != ESP_OK){
+        
+    }
     return err;
 }
 

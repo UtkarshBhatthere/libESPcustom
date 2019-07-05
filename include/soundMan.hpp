@@ -4,6 +4,7 @@
 /* Includes */
 
 #include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 // Drivers
 #include "driver/i2s.h"
@@ -18,7 +19,7 @@
 #define i2s_PORT_0   I2S_NUM_0
 #define i2s_PORT_1   I2S_NUM_1
 
-#define standard_MIC_SAMPLE_RATE 48000 //48Khz
+#define standard_MIC_SAMPLE_RATE 44100 //44.1Khz
 
 
 class soundMan
@@ -28,7 +29,6 @@ class soundMan
         i2s_channel_t    channel;               // mono or stereo channel
         i2s_config_t     config;                // speed, mode,  DMA buf len ,  APLL choice
         i2s_pin_config_t pinout;                // pin config for the peripheral
-        uint16_t*        input_bfr = NULL;             // input buffer for receive operations.
         int              round_sample_count = 0;       // no of samples in each round of rx_audio().
         esp_err_t       (*post_receive_callback)(uint16_t* ip_bfr, uint16_t sample_len);    // The attached function will receive the I2S received buffer as a param.
         esp_err_t       (*post_transmit_callback)(uint16_t* op_bfr, uint16_t sample_len);
