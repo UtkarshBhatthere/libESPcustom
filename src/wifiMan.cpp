@@ -306,12 +306,12 @@ esp_err_t wifiMan::init()
  ********************************************************************************/
 esp_err_t wifiMan::scan(void)
 {
-    wifi_scan_config_t scan_def = {
-    .ssid = NULL,
-    .bssid = NULL,
-    .channel = 0,
-    .show_hidden = 1
-    };
+    wifi_scan_config_t scan_def;
+    memset(&scan_def, 0x00, sizeof(wifi_scan_config_t));
+    scan_def.ssid = NULL;
+    scan_def.bssid = NULL;
+    scan_def.channel = 0;
+    scan_def.show_hidden = 1;
     // First Parameter is scan config var next param is block_bool if true it will block the caller until the scan is done.
     ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_def, 1));
     return ESP_OK;
