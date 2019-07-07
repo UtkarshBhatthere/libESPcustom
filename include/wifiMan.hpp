@@ -32,7 +32,6 @@
 typedef struct{
     bool connected = false;
     bool sta_connected = false;
-    bool sta_disconnected = false;
     bool verbose = false;
     int scan_done_count = 0;
     bool got_ip = false;
