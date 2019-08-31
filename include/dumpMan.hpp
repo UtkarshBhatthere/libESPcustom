@@ -1,6 +1,8 @@
 #ifndef _DUMP_MANAGER_HPP_
 #define _DUMP_MANAGER_HPP_
 
+#include <string>
+
 #include "esp_err.h"
 #include "esp_log.h"
 
@@ -8,6 +10,8 @@
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
 #include "lwip/netdb.h"
+
+using namespace std;
 
 #define dumpLOG(x, y) if(x) { ESP_LOGI("dump_LOG", y); }
 
@@ -23,7 +27,7 @@ class dumpMan
         int verbosity;
         int sock;
         uint16_t port;
-        std::string targetIP;
+        string targetIP;
         char addr_str[128];
         int addr_family;
         int ip_protocol;
@@ -34,10 +38,10 @@ class dumpMan
         dumpMan(const char* IP, int port,  int protocol = SOCK_STREAM, int verbosity = 0);
         // ~dumpMan(void);
         dump_err_t init(void);
-        dump_err_t connect(void);
-        int write(const char* payload, int size);
+        dump_err_t get_connected(void);
+        int write(const uint16_t* payload, uint16_t size);
         int read(char* readBuffer, int size);
-        void disconnect(void)
+        void get_disconnected(void);
 
 };
 

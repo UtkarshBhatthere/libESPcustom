@@ -2,13 +2,13 @@
 
 using namespace std;
 
-dumpMan::dumpMan(const char* IP, int port, int protocol = SOCK_STREAM, int verbosity)
+dumpMan::dumpMan(const char* IP, int port, int protocol /*= SOCK_STREAM*/, int verbosity/* = 0 */)
 {
     this-> targetIP     = IP;
     this-> port         = port;
     this-> packet_Proto = protocol;
     this->verbosity     = verbosity;
-    this-> dest_addr.sin_addr.s_addr = inet_addr(this->targetIP.c_string());
+    this-> dest_addr.sin_addr.s_addr = inet_addr(this->targetIP.c_str());
     this-> dest_addr.sin_family = AF_INET;
     this-> dest_addr.sin_port = htons(this->port);
     this-> addr_family = AF_INET;
@@ -20,7 +20,7 @@ dumpMan::dumpMan(const char* IP, int port, int protocol = SOCK_STREAM, int verbo
 
 dump_err_t dumpMan::init()
 {
-    this-> sock = socket(this-> addr_family, this->packet_Proto, this->ip_protocol)
+    this-> sock = socket(this-> addr_family, this->packet_Proto, this->ip_protocol);
     if(this-> sock < 0){
         dumpLOG(this->verbosity, "ERROR! : In creating socket.")
         return FAILURE;
@@ -29,9 +29,9 @@ dump_err_t dumpMan::init()
     return SUCCESS;
 }
 
-dump_err_t dumpMan::connect()
+dump_err_t dumpMan::get_connected()
 {
-    int status = connect(this-> sock, (struct sockaddr_in*)this-> dest_addr, sizeof(dest_addr));
+    int status = connect(this->sock, (const struct sockaddr*)(&this->dest_addr), sizeof(this->dest_addr));
     if(status < 0){
         dumpLOG(this->verbosity, "ERROR! : In Connecting.")
         return FAILURE;
@@ -45,17 +45,17 @@ int dumpMan::read(char* readBuffer, int size)
     int len = recv(this->sock, readBuffer, size - 1, 0);
     if(size < 0){
         dumpLOG(this->verbosity, "ERROR! : Receive Failed")
-        break;
+        return -1;
     }else{
         readBuffer[len] = '\0';
-        dumpLOG(this->verbosity, "Received %d bytes", len);
+        dumpLOG(this->verbosity, "Received");
     }
     return len;
 }
 
-int dumpMan::write(const char* payload, int size)
+int dumpMan::write(const uint16_t* payload, uint16_t size)
 {
-    int status = send(this->sock, payload, size, 0);
+    int status = send(this->sock, payload, size, 0);          // Size returns bytes read.
     if(status < 0){
         dumpLOG(this->verbosity, "ERROR! : In writing data to socket.");
         return 0;
@@ -64,7 +64,7 @@ int dumpMan::write(const char* payload, int size)
     return size;
 }
 
-void dumpMan::disconnect()
+void dumpMan::get_disconnected()
 {
     if(sock < 0){
         dumpLOG(this->verbosity, "Socket isn't available");
