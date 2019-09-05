@@ -53,7 +53,6 @@ void wifi_service(void *pvParameter)
     wMgr.init();
     while (1){
         if(settings_arrived){
-            // ESP_LOGI("CHECK", "GOING TO START STA %s, %s", ssid.c_str(), pass.c_str());
             ESP_ERROR_CHECK(wMgr.ap_sta_init(ssid, pass));
             settings_arrived = 0;
             if((wMgr.connect()) == ESP_OK){
@@ -61,10 +60,13 @@ void wifi_service(void *pvParameter)
             }
             vTaskDelay(1000);
         }
+
+        if(!wMgr.isConnected()){
+          wMgr.connect();
+        }
         wifi_has_ip = wMgr.got_ip();
         wifi_connected_to_ap = wMgr.isConnected();
-        wMgr.mgr(1000);
-        taskYIELD();
+        vTaskDelay(1000);
     }
 }
 
