@@ -184,12 +184,12 @@ namespace helper
             ESP_LOGI(wifiManTag, "SYSTEM_EVENT_AP_STADISCONNECTED, mac:" MACSTR ", aid:%d", \
                     MAC2STR(stadisconnected->mac), stadisconnected->aid);
             param->sta_connected = false;
-            param->got_ip = false;
+            // param->got_ip = false;
             break;
         }
         case SYSTEM_EVENT_AP_STAIPASSIGNED: {
             ESP_LOGI(wifiManTag, "SYSTEM_EVENT_AP_STAIPASSIGNED");
-            param->got_ip = true;
+            // param->got_ip = true;
             break;
         }
         case SYSTEM_EVENT_AP_PROBEREQRECVED: {
