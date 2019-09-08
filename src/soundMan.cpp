@@ -76,15 +76,15 @@ esp_err_t soundMan::rx_audio()
 {
     esp_err_t err;
     size_t bytes_read;
-    uint16_t input_bfr[this->config.dma_buf_len*2+4];
+    uint16_t input_bfr[this->config.dma_buf_len*4+4];
 
-    if((err = i2s_read(this->port, &input_bfr, this->config.dma_buf_len, &bytes_read, 200)) != ESP_OK)
+    if((err = i2s_read(this->port, &input_bfr, 4*this->config.dma_buf_len, &bytes_read, 100)) != ESP_OK)
         ESP_LOGI(soundManTag, "Specified %d but read %d bytes.", this->config.dma_buf_len, bytes_read);
 
     if((err = this->post_receive_callback(input_bfr, bytes_read)) != ESP_OK){
-        
+        return err;
     }
-    return err;
+    return ESP_OK;
 }
 
 /** To transmit Audio.

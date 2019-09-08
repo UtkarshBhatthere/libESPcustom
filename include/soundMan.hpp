@@ -19,7 +19,7 @@
 #define i2s_PORT_0   I2S_NUM_0
 #define i2s_PORT_1   I2S_NUM_1
 
-#define standard_MIC_SAMPLE_RATE 16000 //44.1Khz target but testing right now.
+#define standard_MIC_SAMPLE_RATE 44100 //44.1Khz target but testing right now.
 
 
 class soundMan
