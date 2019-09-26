@@ -65,6 +65,8 @@ span.psw {\\
     <input type='text' placeholder='SSID' name='SSID' required>\\
     <label for='password'><b>Password</b></label>\\
     <input type='password' placeholder='Enter Password' name='password' required>\\
+    <label for='IP'> <b>Target IP</b> </label>\\
+    <input type='text' placeholder='xxx.xxx.xxx.xxx' name='IP' required>\\
     <button type='submit'>Setup</button>\\
   </div>\\
   </div>\\

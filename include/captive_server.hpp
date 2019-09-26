@@ -17,6 +17,7 @@ using namespace std;
 //Vars
 string ssid;
 string pass;
+string IP;
 
 // Status Vars.
 bool settings_arrived = false;
@@ -86,13 +87,21 @@ static void captive_handler(struct mg_connection *nc, int ev, void *ev_data) {
         ESP_LOGI("DEBUG TAG", "Received Post Request");
         char* ssid_bfr = new char[50];
         char* pass_bfr = new char[50];
+        char* IP_bfr   = new char[20];
         mg_get_http_var(&(hm->body), "ssid", ssid_bfr, hm->body.len);
         mg_get_http_var(&(hm->body), "password", pass_bfr, hm->body.len);
+        mg_get_http_var(&(hm->body), "IP", IP_bfr, hm->body.len);
+
         ssid = ssid_bfr;
         pass = pass_bfr;
+        IP   = IP_bfr;
+
+        ESP_LOGI("IP Arrived", "%s", IP.c_str());
+
         settings_arrived = true;
         delete[] ssid_bfr;
         delete[] pass_bfr;
+        delete[] IP_bfr;
       }else if(hm->method.p[0] == 'G'){
           struct http_message *hm = (struct http_message *) ev_data;
           printf("%p: The request was --%.*s--\r\n", nc, (int) hm->method.len, hm->method.p);
